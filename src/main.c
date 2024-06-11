@@ -21,10 +21,10 @@
 
 static struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
 	(BT_LE_ADV_OPT_CONNECTABLE |
-	 BT_LE_ADV_OPT_USE_IDENTITY), /* Connectable advertising and use identity address */
-	800, /* Min Advertising Interval 500ms (800*0.625ms) */
-	801, /* Max Advertising Interval 500.625ms (801*0.625ms) */
-	NULL); /* Set to NULL for undirected advertising */
+	BT_LE_ADV_OPT_USE_IDENTITY), // Connectable advertising and use identity address
+	800, // Min Advertising Interval 500ms (800*0.625ms)
+	801, // Max Advertising Interval 500.625ms (801*0.625ms)
+	NULL); // Set to NULL for undirected advertising
 
 LOG_MODULE_REGISTER(BLE_Calculator_App, LOG_LEVEL_INF);
 
@@ -41,7 +41,7 @@ LOG_MODULE_REGISTER(BLE_Calculator_App, LOG_LEVEL_INF);
 #define RUN_LED_BLINK_INTERVAL 1000
 #define NOTIFY_INTERVAL 500	/* STEP 17 - Define the interval at which you want to send data at */
 
-//  Manufacturer Specific Data (Additional advertisement data)------------------------
+//  Manufacturer Specific Data (Additional advertisement data) -----------------------------------
 #define COMPANY_ID_CODE 0x0059  // Company identifier (Company ID)
 // Declare the structure for custom data
 typedef struct adv_mfg_data {
@@ -52,8 +52,7 @@ typedef struct adv_mfg_data {
 static adv_mfg_data_type adv_mfg_data = { COMPANY_ID_CODE, 0x00 };
 // -----------------------------------------------------------------------------------------------
 
-static uint32_t app_sensor_value = 100; /* STEP 15 - Define the data you want to stream over Bluetooth LE */
-//static uint32_t app_result = 0;         // Data to stream over Bluetooth LE
+static uint32_t app_result_value = 0;  // Data to stream over BLE
 
 // Create the advertising parameter for connectable advertising
 static const struct bt_data ad[] = {
@@ -65,82 +64,41 @@ static const struct bt_data ad[] = {
 };
 
 static const struct bt_data sd[] = {
-	// Include the 16-bytes (128-Bits) UUID of the LBS service in the scan response packet
-	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_LBS_VAL),
+	// Include the 16-bytes (128-Bits) UUID of the CDS service in the scan response packet
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_CDS_VAL),
 	// BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_128_ENCODE(0x00001523, 0x1212, 0xefde, 0x1523, 0x785feabcd123)),
 };
 // -----------------------------------------------------------------------------------------------
 
-/* STEP 16 - Define a function to simulate the data */
-static void simulate_data(void)
+
+// Function to calculate the equation
+static void calculate_data(void)
 {
-	app_sensor_value++;
-	if (app_sensor_value == 200) {
-		app_sensor_value = 100;
-	}
+	app_result_value = 0;
+	// if (wyjątki, zakres itp) {
+	// 	app_result_value = ;
+	// }
 }
 
-// // Define a function to calculate the data
-// static void calculate_data(void)
-// {
-// 	app_result = ;
-// }
-
-static void app_led_cb(bool led_state)
+static void app_operation_cb(bool operation_state) // TODO: ????char????
 {
-	dk_set_led(USER_LED, led_state);
+	dk_set_led(USER_LED, operation_state);
 }
 
-/* STEP 18.1 - Define the thread function  */
+// Thread function
 void send_data_thread(void)
 {
 	while (1) {
-		/* Simulate data */
-		simulate_data();
-		/* Send notification, the function sends notifications only if a client is subscribed */
-		my_lbs_send_sensor_notify(app_sensor_value);
+		calculate_data();  // Calculate data
+		my_cds_send_result_notify(app_result_value);  // Send notification (only if a client is subscribed)
 
 		k_sleep(K_MSEC(NOTIFY_INTERVAL));
 	}
 }
 
-// // Define the thread function
-// void send_data_thread(void)
-// {
-// 	while (1) {
-// 		calculate_data();  // Calculate data
-// 		/* Send notification, the function sends notifications only if a client is subscribed */
-// 		my_cds_send_notify(app_result);
-
-// 		k_sleep(K_MSEC(NOTIFY_INTERVAL));
-// 	}
-// }
-
-static struct my_lbs_cb app_callbacks = {
-	.led_cb = app_led_cb,
+static struct my_cds_cb app_callbacks = {
+	.operation_cb = app_operation_cb,
 };
-
-
-// // ----------- MY Callback functions --------------------------------------------------------------
-// // Define the application callback function for pass ?operands? or ?operations?
-// static void app_operation_cb(bool operand)
-// {
-//         dk_set_operation(USER_operation, 1);
-// }
-
-// // Define the application callback function for reading the operation result
-// static bool app_result_cb(void)
-// {
-// 	return result;
-// }
-
-// // Declare a variable app_callbacks of type ?? and initiate its members
-// static struct my_result_cb app_callbacks = {
-// 	.operation_cb    = app_operation_cb,
-// 	.result_cb = app_result_cb,
-// };
-// // ----------- END: MY Callback functions --------------------------------------------------------------
-
 
 // ----------- Connection Callback functions --------------------------------------------------------------
 static void on_connected(struct bt_conn *conn, uint8_t err)
@@ -187,9 +145,9 @@ int main(void)
 	}
 	bt_conn_cb_register(&connection_callbacks);  // Register connection callbacks
 	// Pass application callback functions stored in app_callbacks to the Calculator Service
-	err = my_lbs_init(&app_callbacks);
+	err = my_cds_init(&app_callbacks);
 	if (err) {
-		printk("Failed to init LBS (err:%d)\n", err);
+		printk("Failed to init CDS (err:%d)\n", err);
 		return -1;
 	}
 	

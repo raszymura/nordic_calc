@@ -30,11 +30,8 @@
 LOG_MODULE_DECLARE(BLE_Calculator_App);
 
 // -----------------------------------------------------------------------------------------------
-static bool notify_mysensor_enabled;
-static struct my_lbs_cb lbs_cb;
-
-// static bool notify_mycalc_enabled;
-// static struct my_calc_cb  calc_cb;
+static bool notify_result_enabled;
+static struct my_cds_cb  cds_cb;
 
 // struct calculator_task {  // Define a structure for calculator tasks
 //     uint8_t operation;           // Operation to be performed (e.g., add, subtract)
@@ -46,44 +43,36 @@ static struct my_lbs_cb lbs_cb;
 // };
 // -----------------------------------------------------------------------------------------------
 
-/* STEP 13 - Define the configuration change callback function for the MYSENSOR characteristic */
-static void mylbsbc_ccc_mysensor_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
+// Define the configuration change callback function for the result characteristic
+static void mycdsbc_ccc_result_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
-	notify_mysensor_enabled = (value == BT_GATT_CCC_NOTIFY);
+	notify_result_enabled = (value == BT_GATT_CCC_NOTIFY);  // Check if notifications are enabled
 }
 
-// // Callback function to handle changes in Client Characteristic Configuration Descriptor (CCCD)
-// // Configuration change callback function for the CALC characteristic
-// static void calc_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
-// {
-//     bool notify_mycalc_enabled = (value == BT_GATT_CCC_NOTIFY);  // Check if notifications are enabled
-// }
-// ---------------------------------------------------------------------------------------------------
-
-static ssize_t write_led(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
+static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
 			 uint16_t len, uint16_t offset, uint8_t flags)
 {
 	LOG_DBG("Attribute write, handle: %u, conn: %p", attr->handle, (void *)conn);
 
 	if (len != 1U) {
-		LOG_DBG("Write led: Incorrect data length");
+		LOG_DBG("Write operation: Incorrect data length");
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
 	}
 
 	if (offset != 0) {
-		LOG_DBG("Write led: Incorrect data offset");
+		LOG_DBG("Write operation: Incorrect data offset");
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 
-	if (lbs_cb.led_cb) {
+	if (cds_cb.operation_cb) {
 		// Read the received value
 		uint8_t val = *((uint8_t *)buf);
 
 		if (val == 0x00 || val == 0x01) {
-			// Call the application callback function to update the LED state
-			lbs_cb.led_cb(val ? true : false);
+			// Call the application callback function to update the operation state
+			cds_cb.operation_cb(val ? true : false);
 		} else {
-			LOG_DBG("Write led: Incorrect value");
+			LOG_DBG("Write operation: Incorrect value");
 			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 		}
 	}
@@ -91,32 +80,33 @@ static ssize_t write_led(struct bt_conn *conn, const struct bt_gatt_attr *attr, 
 	return len;
 }
 
-/* LED Button Service Declaration */
+// GATT Calculator Data Service (CDS) Declaration --------------------------------------------------
 BT_GATT_SERVICE_DEFINE(
-	my_lbs_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_LBS),
-	BT_GATT_CHARACTERISTIC(BT_UUID_LBS_LED, BT_GATT_CHRC_WRITE, BT_GATT_PERM_WRITE, NULL,
-			       write_led, NULL),
-	/* STEP 12 - Create and add the MYSENSOR characteristic and its CCCD  */
-	BT_GATT_CHARACTERISTIC(BT_UUID_LBS_MYSENSOR, BT_GATT_CHRC_NOTIFY, BT_GATT_PERM_NONE, NULL, NULL, NULL),
-	BT_GATT_CCC(mylbsbc_ccc_mysensor_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	my_cds_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_CDS),  // Primary service with a custom UUID
+	BT_GATT_CHARACTERISTIC(BT_UUID_CDS_OPERATION, BT_GATT_CHRC_WRITE,
+				BT_GATT_PERM_WRITE, NULL, write_operation, NULL), // Writing operations Characteristic
+	BT_GATT_CHARACTERISTIC(BT_UUID_CDS_RESULT, BT_GATT_CHRC_NOTIFY,
+				BT_GATT_PERM_NONE, NULL, NULL, NULL),  // Notify result Characteristic
+	BT_GATT_CCC(mycdsbc_ccc_result_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
 
-/* A function to register application callbacks for the LED and Button characteristics  */
-int my_lbs_init(struct my_lbs_cb *callbacks)
+// Register application callbacks for the CDS characteristics -----------------------------------------
+int my_cds_init(struct my_cds_cb *callbacks)
 {
 	if (callbacks) {
-		lbs_cb.led_cb = callbacks->led_cb;
+		cds_cb.operation_cb = callbacks->operation_cb;
 	}
 
 	return 0;
 }
 
-/* STEP 14 - Define the function to send notifications for the MYSENSOR characteristic */
-int my_lbs_send_sensor_notify(uint32_t sensor_value)
+// Function to send notifications for the result characteristic
+int my_cds_send_result_notify(uint32_t result_value)
 {
-	if (!notify_mysensor_enabled) {
+	if (!notify_result_enabled) {
 		return -EACCES;
 	}
 
-	return bt_gatt_notify(NULL, &my_lbs_svc.attrs[4], &sensor_value, sizeof(sensor_value));
+	return bt_gatt_notify(NULL, &my_cds_svc.attrs[4], &result_value, sizeof(result_value));
 }
+// ---------------------------------------------------------------------------------------------------
