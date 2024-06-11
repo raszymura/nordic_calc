@@ -24,6 +24,7 @@ The application is available [here](https://github.com/raszymura/BLE_test_tool_p
 **Generic Attribute Profile (GATT)** defines the necessary sub-procedures for using the ATT layer.\
 **Attribute Protocol (ATT)** allows a device to expose certain pieces of data to another device.\
 **Advertising:** The process of transmitting advertising packets, either just to broadcast data or to be discovered by another device.\
+**Manufacturer Specific Data** (BT_DATA_MANUFACTURER_DATA). This is a popular type that enables companies to define their own custom advertising data.\
 **Scanning:** The process of listening for advertising packets.\
 **Connection-oriented communication:** When there is a dedicated connection between devices, forming bi-directional communication.\
 **Central:** A device role that scans and initiates connections with peripherals. In our case PC.\
