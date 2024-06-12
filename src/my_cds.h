@@ -20,14 +20,15 @@ extern "C" {
 #include <zephyr/types.h>
 
 // -----------------------------------------------------------------------------------------------
+// generated with: https://www.uuidgenerator.net/
 /** @brief CDS Service UUID. */
-#define BT_UUID_CDS_VAL BT_UUID_128_ENCODE(0x00001523, 0x1212, 0xefde, 0x1523, 0x785feabcd123)
+#define BT_UUID_CDS_VAL BT_UUID_128_ENCODE(0x6e7e652f,0x0b5d,0x4de6,0xbcd9,0xa071d34c3e9f)
 
 /** @brief Arguments and operations Characteristic UUID. */
-#define BT_UUID_CDS_OPERATION_VAL BT_UUID_128_ENCODE(0x00001525, 0x1212, 0xefde, 0x1523, 0x785feabcd123)
+#define BT_UUID_CDS_OPERATION_VAL BT_UUID_128_ENCODE(0x448e4b02,0xb99a,0x4f57,0xa76d,0xd283933c2fd5)
 
 /** @brief Calculated equation result Characteristic UUID. */
-#define BT_UUID_CDS_RESULT_VAL BT_UUID_128_ENCODE(0x00001526, 0x1212, 0xefde, 0x1523, 0x785feabcd123)
+#define BT_UUID_CDS_RESULT_VAL BT_UUID_128_ENCODE(0x4d19fe91,0x2164,0x49a8,0x9022,0x55ba662ce6fc)
 
 // Convert the array to a generic UUID
 #define BT_UUID_CDS 			BT_UUID_DECLARE_128(BT_UUID_CDS_VAL)

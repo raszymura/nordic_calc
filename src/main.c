@@ -37,6 +37,7 @@ LOG_MODULE_REGISTER(BLE_Calculator_App, LOG_LEVEL_INF);
 
 #define STACKSIZE 1024
 #define PRIORITY 7
+// #define CALCULATOR_PRIORITY 7
 
 #define RUN_LED_BLINK_INTERVAL 1000
 #define NOTIFY_INTERVAL 500	/* STEP 17 - Define the interval at which you want to send data at */
@@ -66,7 +67,6 @@ static const struct bt_data ad[] = {
 static const struct bt_data sd[] = {
 	// Include the 16-bytes (128-Bits) UUID of the CDS service in the scan response packet
 	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_CDS_VAL),
-	// BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_128_ENCODE(0x00001523, 0x1212, 0xefde, 0x1523, 0x785feabcd123)),
 };
 // -----------------------------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ static const struct bt_data sd[] = {
 // Function to calculate the equation
 static void calculate_data(void)
 {
-	app_result_value = 0;
+	app_result_value += 1;
 	// if (wyjątki, zakres itp) {
 	// 	app_result_value = ;
 	// }
@@ -164,7 +164,7 @@ int main(void)
 		// Update the advertising data dynamically
 		adv_mfg_data.seconds_since_reset = k_uptime_get() / 1000;  // Update number of seconds since reset
 		// printk("%ds\n", adv_mfg_data.seconds_since_reset);
-		bt_le_adv_update_data(ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+		bt_le_adv_update_data(ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));  // Update adv
 
 		dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
 		k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
@@ -175,4 +175,4 @@ K_THREAD_DEFINE(send_data_thread_id, STACKSIZE, send_data_thread, NULL, NULL, NU
 
 // // Define and initialize the calculator thread
 // K_THREAD_DEFINE(calculator_thread_id, STACKSIZE, calculator_thread, NULL, NULL,
-//                 NULL, CALC_PRIORITY, 0, 0);
+//                 NULL, CALCULATOR_PRIORITY, 0, 0);
