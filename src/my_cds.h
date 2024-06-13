@@ -19,7 +19,22 @@ extern "C" {
 
 #include <zephyr/types.h>
 
-// -----------------------------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------------------------
+#pragma pack(push, 1) // Preserve current packing settings and set packing to 1 byte
+struct calculator_task {		// Define a structure for calculator tasks
+    uint8_t operation;			// Operation to be performed (e.g., add, subtract)
+    union {						// Union for operands, allowing either float or fixed-point integer.
+        float f_operand;		// 32-bit floating-point operand
+        int32_t q31_operand;	// Fixed-point (Q31) operand
+    };
+    bool mode;					// Mode: floating-point (0) or fixed-point (1)
+};
+#pragma pack(pop) // Restore original packing
+// -------------------------------------------------------------------------------------------------
+
+
+// -------------------------------------------------------------------------------------------------
 // generated with: https://www.uuidgenerator.net/
 /** @brief CDS Service UUID. */
 #define BT_UUID_CDS_VAL BT_UUID_128_ENCODE(0x6e7e652f,0x0b5d,0x4de6,0xbcd9,0xa071d34c3e9f)
@@ -37,12 +52,12 @@ extern "C" {
 
 
 /** @brief Callback type for when a operation is received. */
-typedef void (*operation_cb_t)(const bool led_state); // TODO: ????char????
+typedef void (*mode_cb_t)(const bool mode_state); // Mode (float or fixed) LED indicator
 
 
 /** @brief Callback struct used by the CDS Service. */
 struct my_cds_cb {
-	operation_cb_t operation_cb;  // LED state change callback
+	mode_cb_t mode_cb;  // LED state change callback
 };
 
 
@@ -68,6 +83,16 @@ int my_cds_init(struct my_cds_cb *callbacks);
  * @retval 0 If the operation was successful. Otherwise, a (negative) error code is returned.
  */
 int my_cds_send_result_notify(uint32_t result_value);  // TODO: ????uint32_t???? & ????retval????32-bit float,Q31 fixed-point mode
+
+/** @brief Calculate the result value as notification.
+ *
+ * This function calculates an uint32_t equation result value. 
+ *
+ * @param[in] task The equation struct.
+ *
+ * @retval 0 If the operation was successful. Otherwise, a (negative) error code is returned.
+ */
+uint32_t my_cds_calculate_result(struct calculator_task task);  // TODO: ????uint32_t???? & ????retval????32-bit float,Q31 fixed-point mode
 
 
 #ifdef __cplusplus

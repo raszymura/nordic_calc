@@ -29,23 +29,14 @@
 
 LOG_MODULE_DECLARE(BLE_Calculator_App);
 
-// -----------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 static bool notify_result_enabled;
 static struct my_cds_cb  cds_cb;
+// -------------------------------------------------------------------------------------------------
+extern struct k_sem result_sem;  // Semaphor
+extern struct k_msgq calculator_msgq;  // Message queue
 
-#pragma pack(push, 1) // Preserve current packing settings and set packing to 1 byte
-struct calculator_task {		// Define a structure for calculator tasks
-    uint8_t operation;			// Operation to be performed (e.g., add, subtract)
-    union {						// Union for operands, allowing either float or fixed-point integer.
-        float f_operand;		// 32-bit floating-point operand
-        int32_t q31_operand;	// Fixed-point (Q31) operand
-    };
-    bool mode;				// Mode: floating-point (0) or fixed-point (1)
-};
-#pragma pack(pop) // Restore original packing settings after defining the structure
-// -----------------------------------------------------------------------------------------------
-
-// Define the configuration change callback function for the result characteristic
+// Define the configuration change callback function for the result characteristic -----------------
 static void mycdsbc_ccc_result_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
 	notify_result_enabled = (value == BT_GATT_CCC_NOTIFY);  // Check if notifications are enabled
@@ -58,20 +49,19 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
 
 	if (len != sizeof(struct calculator_task)) { 
 		LOG_DBG("Write operation: Incorrect data length");
-		printk("Write operation: Incorrect data length\n");
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
 	}
 
 	if (offset != 0) {
 		LOG_DBG("Write operation: Incorrect data offset");
-		printk("Write operation: Incorrect data offset\n");
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
-
 	// Cast the buffer to the calculator_task struct
     struct calculator_task *task = (struct calculator_task *)buf;
 
-    //memcpy(&task, buf, sizeof(task));  // Copy the received data into the task variable
+	// struct calculator_task *task;
+    // memcpy(task, buf, sizeof(task));  // Copy the received data into the task variable
+
 	// Display the contents of the struct
     printk("Operation: %u\n", task->operation);
     if (task->mode) {
@@ -80,7 +70,9 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
         printk("Float Operand: %f\n", task->f_operand);
     }
     printk("Mode: %u\n", task->mode);
-    //k_msgq_put(&calculator_msgq, &task, K_NO_WAIT);  // Put the task into the message queue
+	printk("----------------\n");
+
+    k_msgq_put(&calculator_msgq, task, K_NO_WAIT);  // Put the task into the message queue
 
 	// if (cds_cb.operation_cb) {
 	// 	uint8_t val = *((uint8_t *)buf);  // Read the received value
@@ -95,6 +87,8 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
 	// 	}
 	// }
 
+
+
 	return len;  // Return the length of the received data
 }
 
@@ -108,18 +102,19 @@ BT_GATT_SERVICE_DEFINE(  // Statically add the service to the attributes table o
 	BT_GATT_CCC(mycdsbc_ccc_result_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
 
-// Register application callbacks for the CDS characteristics -----------------------------------------
+// Register application callbacks for the CDS characteristics --------------------------------------
 int my_cds_init(struct my_cds_cb *callbacks)
 {
 	if (callbacks) {
-		cds_cb.operation_cb = callbacks->operation_cb;
-		// calc_cb.result_cb = callbacks->result_cb;
+		cds_cb.mode_cb = callbacks->mode_cb;
 	}
 
 	return 0;
 }
 
-// Function to send notifications for the result characteristic
+
+// Thread functions --------------------------------------------------------------------------------
+// Function to send notifications for the result characteristic (send_data_thread) -----------------
 int my_cds_send_result_notify(uint32_t result_value)
 {
 	if (!notify_result_enabled) {
@@ -128,4 +123,23 @@ int my_cds_send_result_notify(uint32_t result_value)
 
 	return bt_gatt_notify(NULL, &my_cds_svc.attrs[4], &result_value, sizeof(result_value));
 }
-// ---------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+// Function to calculate the equation result (calculator_engine_thread) ----------------------------
+uint32_t my_cds_calculate_result(struct calculator_task task)
+{  
+	// Display the contents of the struct
+    printk("Operation in calculator thread: %u\n", task.operation);
+    if (task.mode) {
+        printk("Q31 Operand: %d\n", task.q31_operand);
+    } else {
+        printk("Float Operand: %f\n", task.f_operand);
+    }
+    printk("Mode: %u\n", task.mode);
+	printk("----------------\n");
+
+	uint32_t app_result_value = 10;
+
+	return app_result_value;
+}
+// -------------------------------------------------------------------------------------------------
