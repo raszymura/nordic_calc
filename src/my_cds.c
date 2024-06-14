@@ -57,7 +57,7 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 	// Cast the buffer to the calculator_task struct
-    struct calculator_task *task = (struct calculator_task *)buf;
+    struct calculator_task *task = (struct calculator_task *)buf;  // Read the received value
 
 	// struct calculator_task *task;
     // memcpy(task, buf, sizeof(task));  // Copy the received data into the task variable
@@ -74,20 +74,16 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
 
     k_msgq_put(&calculator_msgq, task, K_NO_WAIT);  // Put the task into the message queue
 
-	// if (cds_cb.operation_cb) {
-	// 	uint8_t val = *((uint8_t *)buf);  // Read the received value
-	// 	// uint8_t val = *((uint8_t *)task.mode);  // Read the received value
-
-	// 	if (val == 0x00 || val == 0x01) {
-	// 		// Call the application callback function to update the operation state
-	// 		cds_cb.operation_cb(val ? true : false);
-	// 	} else {
-	// 		LOG_DBG("Write operation: Incorrect value");
-	// 		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
-	// 	}
-	// }
-
-
+	// LED mode indicator
+	if (cds_cb.mode_cb) {
+		if (task->mode == 0 || task->mode == 1) {
+			// Call the application callback function to update the mode state
+			cds_cb.mode_cb(task->mode ? true : false);
+		} else {
+			LOG_DBG("Write mode: Incorrect value");
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+		}
+	}
 
 	return len;  // Return the length of the received data
 }
