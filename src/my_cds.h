@@ -19,23 +19,45 @@ extern "C" {
 
 #include <zephyr/types.h>
 
-
+// MODES:
+#define FLOAT_MODE 0  // 32-bit floating-point mode
+#define FIXED_MODE 1  // Q31 fixed-point mode
 // -------------------------------------------------------------------------------------------------
 #pragma pack(push, 1) // Preserve current packing settings and set packing to 1 byte
 struct calculator_task {		// Define a structure for calculator tasks
-    uint8_t operation;			// Operation to be performed (e.g., add, subtract)
-    union {						// Union for operands, allowing either float or fixed-point integer.
-        float f_operand;		// 32-bit floating-point operand
-        int32_t q31_operand;	// Fixed-point (Q31) operand
-    };
-    bool mode;					// Mode: floating-point (0) or fixed-point (1)
+	uint8_t operation;			// Operation to be performed (e.g., add, subtract)
+	union {						// Union for 1 argument, allowing either float or fixed-point integer.
+		float f_operand_1;		// 32-bit floating-point operand
+        int32_t q31_operand_1;	// Fixed-point (Q31) operand
+	};
+	union {						// Union for 2 argument, allowing either float or fixed-point integer.
+		float f_operand_2;		// 32-bit floating-point operand
+		int32_t q31_operand_2;	// Fixed-point (Q31) operand
+	};
+	bool mode;					// Mode: floating-point (0) or fixed-point (1)
 };
 #pragma pack(pop) // Restore original packing
 // -------------------------------------------------------------------------------------------------
+typedef union {
+    int32_t u;
+    float f;
+} int32_float_union;
 
+typedef enum {
+    INT32_TYPE,
+    FLOAT_TYPE
+} ReturnType;
+
+typedef struct {
+    int32_float_union value;
+    ReturnType type;
+} ReturnValue;
+// -------------------------------------------------------------------------------------------------
+
+#define EPSILON 1e-10  // Division by zero
 
 // -------------------------------------------------------------------------------------------------
-// generated with: https://www.uuidgenerator.net/
+// UUID generated with: https://www.uuidgenerator.net/
 /** @brief CDS Service UUID. */
 #define BT_UUID_CDS_VAL BT_UUID_128_ENCODE(0x6e7e652f,0x0b5d,0x4de6,0xbcd9,0xa071d34c3e9f)
 
@@ -59,7 +81,7 @@ typedef void (*mode_cb_t)(const bool mode_state); // Mode (float or fixed) LED i
 struct my_cds_cb {
 	mode_cb_t mode_cb;  // LED state change callback
 };
-
+// -------------------------------------------------------------------------------------------------
 
 /** @brief Initialize the CDS Service.
  *
@@ -76,24 +98,34 @@ int my_cds_init(struct my_cds_cb *callbacks);
 
 /** @brief Send the result value as notification.
  *
- * This function sends an uint32_t equation result value. 
+ * This function sends an int32_t or float equation result value. 
  *
  * @param[in] result_value The equation result value.
  *
  * @retval 0 If the operation was successful. Otherwise, a (negative) error code is returned.
  */
-int my_cds_send_result_notify(uint32_t result_value);  // TODO: ????uint32_t???? & ????retval????32-bit float,Q31 fixed-point mode
+int my_cds_send_result_notify(ReturnValue result_value);
 
-/** @brief Calculate the result value as notification.
+/** @brief Calculate the result value.
  *
- * This function calculates an uint32_t equation result value. 
+ * This function calculates an int32_t or float equation result value. 
  *
  * @param[in] task The equation struct.
  *
  * @retval 0 If the operation was successful. Otherwise, a (negative) error code is returned.
  */
-uint32_t my_cds_calculate_result(struct calculator_task task);  // TODO: ????uint32_t???? & ????retval????32-bit float,Q31 fixed-point mode
+ReturnValue my_cds_calculate_result(struct calculator_task task);
 
+/** @brief Calculate the result of q31 division.
+ *
+ * This function calculates an int32_t division result value. 
+ *
+ * @param[in] a dividend
+* @param[in] b divider
+ *
+ * @retval Result value.
+ */
+int32_t q_div(int32_t a, int32_t b);
 
 #ifdef __cplusplus
 }

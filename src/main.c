@@ -1,7 +1,6 @@
 /*
  * Rafal Szymura
  * June 2024
- * BLE Calculator Application
  */
 
 /*
@@ -10,6 +9,9 @@
  * (2) Notify: For receiving data (result of the operation) from the board
  */
 
+/** @file
+ *  @brief Nordic BLE Calculator Application
+ */
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/bluetooth/bluetooth.h> // Header file of the Bluetooth LE stack
@@ -28,11 +30,11 @@ static struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
 
 LOG_MODULE_REGISTER(BLE_Calculator_App, LOG_LEVEL_INF);
 
-// -------------------------------------------------------------------------------------------------
-K_SEM_DEFINE(result_sem, 0, 1);  // Semaphor
+// Semaphor ----------------------------------------------------------------------------------------
+K_SEM_DEFINE(result_sem, 0, 1);
 extern struct k_sem result_sem;
-// -------------------------------------------------------------------------------------------------
-#define CALC_MSGQ_MAX_MSGS 10  // Message queue
+// Message queue -----------------------------------------------------------------------------------
+#define CALC_MSGQ_MAX_MSGS 10
 #define CALC_MSGQ_MSG_SIZE sizeof(struct calculator_task)
 K_MSGQ_DEFINE(calculator_msgq, CALC_MSGQ_MSG_SIZE, CALC_MSGQ_MAX_MSGS, 4);
 extern struct k_msgq calculator_msgq;
@@ -63,7 +65,7 @@ typedef struct adv_mfg_data {
 static adv_mfg_data_type adv_mfg_data = { COMPANY_ID_CODE, 0x00 };
 // -------------------------------------------------------------------------------------------------
 
-static uint32_t app_result_value = 0;  // Data to stream over BLE
+static ReturnValue app_result_value;  // Data to notify over BLE
 
 // Create the advertising parameter for connectable advertising ------------------------------------
 static const struct bt_data ad[] = {
@@ -80,6 +82,8 @@ static const struct bt_data sd[] = {
 };
 // -------------------------------------------------------------------------------------------------
 
+
+// ----------- Callback functions ------------------------------------------------------------------
 static void app_mode_cb(bool mode_state) // Mode (float or fixed) LED indicator
 {
 	dk_set_led(USER_LED, mode_state);
@@ -88,6 +92,7 @@ static void app_mode_cb(bool mode_state) // Mode (float or fixed) LED indicator
 static struct my_cds_cb app_callbacks = {
 	.mode_cb = app_mode_cb,
 };
+// ----------- END: Callback functions -------------------------------------------------------------
 
 
 // ----------- Connection Callback functions -------------------------------------------------------
@@ -114,16 +119,16 @@ struct bt_conn_cb connection_callbacks = {
 // ----------- END: Connection Callback functions --------------------------------------------------
 
 
-// Thread functions --------------------------------------------------------------------------------
+// ----------- Thread functions --------------------------------------------------------------------
 void send_data_thread(void)
 {
     while (1) {
         k_sem_take(&result_sem, K_FOREVER);  // Wait for the semaphore
-        printk("...sending...\n\n");
+
         int err = my_cds_send_result_notify(app_result_value);
-        if (err) {
-            LOG_ERR("Failed to send notification (err %d)\n", err);
-        }
+		if (err) {
+			LOG_ERR("Failed to send notification (err %d)\n", err);
+		}
     }
 }
 
@@ -132,21 +137,13 @@ void calculator_engine_thread(void)
     struct calculator_task task;
 
     while (1) {
+        // Wait indefinitely for data
         k_msgq_get(&calculator_msgq, &task, K_FOREVER);  // Get the task from the message queue
-
-        // Perform calculations based on the task
-        app_result_value = my_cds_calculate_result(task);  // TODO: Zamień na rzeczywiste obliczenie
-        // if (task.mode == FLOAT_MODE) {
-        //     // Example calculation for float mode
-        //     app_result_value = my_cds_calculate_result(task);  // TODO: Zamień na rzeczywiste obliczenie
-        // } else if (task.mode == FIXED_MODE) {
-        //     // Example calculation for fixed-point mode
-        //     app_result_value = my_cds_calculate_result(task);  // Replace with actual calculation
-        // }
+        app_result_value = my_cds_calculate_result(task);// Perform calculations based on the task
         k_sem_give(&result_sem);  // Set semaphore to notify the send_data_thread that the result is ready
     }
 }
-// -------------------------------------------------------------------------------------------------
+// ----------- END: Thread functions ---------------------------------------------------------------
 
 
 
