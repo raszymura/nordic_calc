@@ -18,7 +18,7 @@ The application includes the following functionalities:
 ### Test Tool
 A PC application written in Python using the bleak library for BLE communication.
 Provides an interactive terminal for performing calculations in both supported numeric modes.
-The application is available [here](https://github.com/raszymura/BLE_test_tool_py/blob/main/README.md)
+The application is available [here](https://github.com/raszymura/BLE_test_tool_py)
 
 ## Definitions
 **Generic Attribute Profile (GATT)** defines the necessary sub-procedures for using the ATT layer.\
