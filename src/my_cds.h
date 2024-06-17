@@ -123,7 +123,7 @@ ReturnValue my_cds_calculate_result(struct calculator_task task);
  * @param[in] a dividend
 * @param[in] b divider
  *
- * @retval Result value.
+ * @retval int32_t result value.
  */
 int32_t q_div(int32_t a, int32_t b);
 

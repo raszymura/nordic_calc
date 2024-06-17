@@ -56,6 +56,7 @@ static ssize_t write_operation(struct bt_conn *conn, const struct bt_gatt_attr *
 	// Cast the buffer to the calculator_task struct
     struct calculator_task *task = (struct calculator_task *)buf;  // Read the received value
 
+	// Unused
 	// struct calculator_task *task;
     // memcpy(task, buf, sizeof(task));  // Copy the received data into the task variable
 
@@ -131,11 +132,11 @@ int my_cds_send_result_notify(ReturnValue result_value)
 // Function to calculate the equation result (calculator_engine_thread) ----------------------------
 ReturnValue my_cds_calculate_result(struct calculator_task task)
 {  
-	// Display the contents of the struct
+	/* // Display the contents of the struct
     printk("Operation in calculator thread: %u\n", task.operation);
 	if (task.mode == FLOAT_MODE) {
-		printk("Float Operand 1: %f\n", task.f_operand_1);
-		printk("Float Operand 2: %f\n", task.f_operand_2);
+		printk("Float Operand 1: %d\n", (int32_t)task.f_operand_1);
+		printk("Float Operand 2: %d\n", (int32_t)task.f_operand_2);
 		printk("FLOAT_MODE\n");
     } else { // FIXED_MODE
 		printk("Q31 Operand 1: %d\n", task.q31_operand_1);
@@ -143,16 +144,13 @@ ReturnValue my_cds_calculate_result(struct calculator_task task)
 		printk("FIXED_MODE\n");
 	}
 	printk("----------------\n");
+	*/
 
 	float result_f = 0.0f;	// Initialize the floating-point result to 0
 	int32_t result_q31 = 0;	// Initialize the fixed-point result to 0
 
 	ReturnValue result;
 
-// TODO: Add FPU usage: 
-// https://infocenter.nordicsemi.com/index.jsp?topic=%2Fsdk_nrf5_v17.0.2%2Fhardware_driver_fpu.html
-// https://devzone.nordicsemi.com/search?q=FPU
-// https://docs.nordicsemi.com/search?q=fpu
 	if (task.mode == FLOAT_MODE) { 
 		switch (task.operation) {
 			case 0: // Reset
@@ -177,11 +175,12 @@ ReturnValue my_cds_calculate_result(struct calculator_task task)
 				break;
 			default:
 				break;
-
-			//  if (isinf(result_f) || isnan(result_f)){
-			// 	printk("Float Overflow!");
-			// 	result_q31 = 0.0f;
-			//  }
+			/*
+			 if (isinf(result_f) || isnan(result_f)){
+				printk("Float Overflow!");
+			result_q31 = 0.0f;
+			 }
+			*/
 		}
 	} else { // FIXED_MODE - https://en.wikipedia.org/wiki/Q_(number_format)
 		switch (task.operation) {
@@ -240,15 +239,13 @@ ReturnValue my_cds_calculate_result(struct calculator_task task)
 }
 // -------------------------------------------------------------------------------------------------
 
-int32_t q_div(int32_t a, int32_t b)  // TODO: Not working properly yet
+int32_t q_div(int32_t a, int32_t b)
 {
-    int64_t temp = (int64_t)a << 31;  // pre-multiply by the base 
-    // Rounding: mid values are rounded up (down for negative values).
-    // OR compare most significant bits i.e. if (((temp >> 31) & 1) == ((b >> 15) & 1))
+    int64_t temp = (int64_t)a << 31;
     if ((temp >= 0 && b >= 0) || (temp < 0 && b < 0)) {   
-        temp += b / 2;    // OR shift 1 bit i.e. temp += (b >> 1);
+        temp += b / 2;
     } else {
-        temp -= b / 2;    // OR shift 1 bit i.e. temp -= (b >> 1);
+        temp -= b / 2;
     }
 	temp = (temp / b);
 	if ((temp > INT32_MAX) || (temp < INT32_MIN)) {
