@@ -50,7 +50,6 @@ extern struct k_msgq calculator_msgq;
 #define STACKSIZE 1024
 #define SEND_DATA_PRIORITY 7
 #define CALCULATOR_ENGINE_PRIORITY 7
-// #define RECEIVE_DATA_PRIORITY 7
 
 #define RUN_LED_BLINK_INTERVAL 1000
 
@@ -202,9 +201,5 @@ K_THREAD_DEFINE(send_data_thread_id, STACKSIZE, send_data_thread, NULL, NULL,
 
 // Define and initialize the 'Calculator Engine' thread
 K_THREAD_DEFINE(calculator_engine_thread_id, STACKSIZE, calculator_engine_thread, NULL, NULL,
-                NULL, CALCULATOR_ENGINE_PRIORITY, 0, 0);
-
-// Define and initialize the 'Receive Data' thread
-// K_THREAD_DEFINE(receive_data_thread_id, STACKSIZE, receive_data_thread, NULL, NULL,
-//                 NULL, RECEIVE_DATA_PRIORITY, 0, 0);
+                	NULL, CALCULATOR_ENGINE_PRIORITY, 0, 0);
 // -------END: THREADS -----------------------------------------------------------------------------
